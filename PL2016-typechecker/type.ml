@@ -83,6 +83,17 @@ let rec gen_equations : TEnv.t -> exp -> typ -> typ_eqn
 | SUB (e1, e2) -> [(ty, TyInt)] @ (gen_equations tenv e1 TyInt) @ (gen_equations tenv e2 TyInt)
 | MUL (e1, e2) -> [(ty, TyInt)] @ (gen_equations tenv e1 TyInt) @ (gen_equations tenv e2 TyInt)
 | DIV (e1, e2) -> [(ty, TyInt)] @ (gen_equations tenv e1 TyInt) @ (gen_equations tenv e2 TyInt)
+| ISZERO n -> [(ty, TyBool)] @ (gen_equations tenv n TyInt)
+| IF (e1, e2, e3) -> (gen_equations tenv e1 TyBool) @ (gen_equations tenv e2 ty) @ (gen_equations tenv e3 ty)
+| LET (x, e1, e2) -> let a = fresh_tyvar() in
+                     let newenv = TEnv.extend (x, a) tenv in
+                     (gen_equations tenv e1 a) @ (gen_equations newenv e2 ty)
+| PROC (x, body) -> let a1 = fresh_tyvar() in
+                    let a2 = fresh_tyvar() in
+                    let newenv = TEnv.extend (x, a1) tenv in
+                    [(ty, TyFun (a1, a2))] @ (gen_equations newenv body a2)
+| CALL (e1, e2) -> let a = fresh_tyvar() in
+                   (gen_equations tenv e1 (TyFun (a, ty))) @ (gen_equations tenv e2 a)
 | _ -> raise TypeError
 
 let solve : typ_eqn -> Subst.t
