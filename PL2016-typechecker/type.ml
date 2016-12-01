@@ -23,7 +23,7 @@ type typ_eqn = (typ * typ) list
 
 (* type equation 확장 *)
 let extend_typ_eqn : (typ * typ) -> (typ * typ) list -> (typ * typ) list
-= fun (a, b) l -> (a, b) :: l;;
+= fun (a, b) l -> (a, b) :: l
 
 let rec string_of_type ty = 
   match ty with
@@ -101,8 +101,35 @@ let rec gen_equations : TEnv.t -> exp -> typ -> typ_eqn
                    (gen_equations tenv e1 (TyFun (a, ty))) @ (gen_equations tenv e2 a)
 | _ -> raise TypeError
 
+let rec occurs : var -> typ -> bool
+=fun x t -> match t with
+| TyInt -> false
+| TyBool -> false
+| TyVar y -> if x = y then true else false
+| TyFun (a, b) -> (occurs x a) || (occurs x b)
+
+
+let rec unify : (typ * typ) -> Subst.t -> Subst.t
+=fun teqn subs -> match teqn with
+| (TyInt, TyInt) -> subs
+| (TyBool, TyBool) -> subs
+| (TyVar a, t) -> (match t with
+                   (* check if it is meaningless *)
+                   | TyVar b -> if a = b then subs else (Subst.extend a t subs)
+                   | TyFun (x, y) -> if (occurs a x) || (occurs a y) then raise TypeError else (Subst.extend a t subs)
+                   | _ -> Subst.extend a t subs
+                  )
+| (t, TyVar a) -> unify (TyVar a, t) subs
+| (TyFun (a1, a2), TyFun (b1, b2)) -> let newsubs = unify (a1, b1) subs in
+                                      let a3 = Subst.apply a2 newsubs in
+                                      let b3 = Subst.apply b2 newsubs in
+                                      unify (a3, b3) newsubs
+| _ -> raise TypeError;;
+
+(* unifyall *)
 let solve : typ_eqn -> Subst.t
-=fun eqns -> Subst.empty (* TODO *)
+=fun eqns -> []
+
 
 let typeof : exp -> typ (* Do not modify this function *)
 =fun exp ->
