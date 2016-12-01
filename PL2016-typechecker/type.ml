@@ -95,7 +95,6 @@ let rec gen_equations : TEnv.t -> exp -> typ -> typ_eqn
                     [(ty, TyFun (a1, a2))] @ (gen_equations newenv body a2)
 | CALL (e1, e2) -> let a = fresh_tyvar() in
                    (gen_equations tenv e1 (TyFun (a, ty))) @ (gen_equations tenv e2 a)
-| _ -> raise TypeError
 
 let rec occurs : var -> typ -> bool
 =fun x t -> match t with
