@@ -86,9 +86,9 @@ let rec gen_equations : TEnv.t -> exp -> typ -> typ_eqn
                      (gen_equations tenv e1 a) @ (gen_equations newenv e2 ty)
 | LETREC (f, x, e1, e2) -> let a1 = fresh_tyvar() in
                            let a2 = fresh_tyvar() in
-                           let newenv1 = TEnv.extend (x, a1) tenv in
-                           let newenv2 = TEnv.extend (f, TyFun (a1, a2)) tenv in
-                           (gen_equations newenv1 e1 a2) @ (gen_equations newenv2 e2 ty)
+                           let newenv1 = TEnv.extend (f, TyFun (a1, a2)) tenv in
+                           let newenv2 = TEnv.extend (x, a1) newenv1 in
+                           (gen_equations newenv2 e1 a2) @ (gen_equations newenv1 e2 ty)
 | PROC (x, body) -> let a1 = fresh_tyvar() in
                     let a2 = fresh_tyvar() in
                     let newenv = TEnv.extend (x, a1) tenv in
@@ -102,7 +102,6 @@ let rec occurs : var -> typ -> bool
 | TyBool -> false
 | TyVar y -> if x = y then true else false
 | TyFun (a, b) -> (occurs x a) || (occurs x b)
-
 
 let rec unify : (typ * typ) -> Subst.t -> Subst.t
 =fun teqn subs -> match teqn with
@@ -119,11 +118,16 @@ let rec unify : (typ * typ) -> Subst.t -> Subst.t
                                       let a3 = Subst.apply a2 newsubs in
                                       let b3 = Subst.apply b2 newsubs in
                                       unify (a3, b3) newsubs
-| _ -> raise TypeError;;
+| (bug1, bug2) -> raise TypeError
 
 (* unifyall *)
+let rec unifyall : typ_eqn -> Subst.t -> Subst.t
+=fun eqns subs -> match eqns with
+| [] -> subs
+| (a1, a2)::tl -> let newsubs = unify (Subst.apply a1 subs, Subst.apply a2 subs) subs in unifyall tl newsubs
+
 let solve : typ_eqn -> Subst.t
-=fun eqns -> []
+=fun eqns -> unifyall eqns Subst.empty
 
 
 let typeof : exp -> typ (* Do not modify this function *)
@@ -141,6 +145,19 @@ let typeof : exp -> typ (* Do not modify this function *)
     print_endline ("Type: " ^ string_of_type ty);
     print_endline "";
     ty
+(*
+TEST CASES
 
 let eqn = gen_equations TEnv.empty (LETREC ("f","x", ADD(VAR "x", CONST 2), CALL (VAR "f", CONST 2))) (TyVar "t");;
+
+let eqn = gen_equations TEnv.empty (LETREC ("fact", "n", IF (,CONST 1,), CALL(VAR "fact", CONST 5))) (TyVar "t");;
+
+let eqn =  gen_equations TEnv.empty  (PROC ("x", VAR "x")) (TyVar "t");;
+
+
+let eqn = gen_equations TEnv.empty
+(LET ("f", (PROC ("x", VAR "x")),
+ IF (CALL (VAR "f", ISZERO (CONST 0)), CALL (VAR "f", CONST 11), CALL (VAR "f", CONST 22)) ))
+ (TyVar "t");; 
+*)
 
