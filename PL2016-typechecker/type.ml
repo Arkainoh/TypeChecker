@@ -88,6 +88,11 @@ let rec gen_equations : TEnv.t -> exp -> typ -> typ_eqn
 | LET (x, e1, e2) -> let a = fresh_tyvar() in
                      let newenv = TEnv.extend (x, a) tenv in
                      (gen_equations tenv e1 a) @ (gen_equations newenv e2 ty)
+| LETREC (f, x, e1, e2) -> let a1 = fresh_tyvar() in
+                           let a2 = fresh_tyvar() in
+                           let newenv1 = TEnv.extend (x, a1) tenv in
+                           let newenv2 = TEnv.extend (f, TyFun (a1, a2)) tenv in
+                           (gen_equations newenv1 e1 a2) @ (gen_equations newenv2 e2 ty)
 | PROC (x, body) -> let a1 = fresh_tyvar() in
                     let a2 = fresh_tyvar() in
                     let newenv = TEnv.extend (x, a1) tenv in
@@ -114,3 +119,6 @@ let typeof : exp -> typ (* Do not modify this function *)
     print_endline ("Type: " ^ string_of_type ty);
     print_endline "";
     ty
+
+let eqn = gen_equations TEnv.empty (LETREC ("f","x", ADD(VAR "x", CONST 2), CALL (VAR "f", CONST 2))) (TyVar "t");;
+
