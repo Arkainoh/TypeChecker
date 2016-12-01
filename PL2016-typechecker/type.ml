@@ -76,7 +76,14 @@ let tyvar_num = ref 0
 let fresh_tyvar () = (tyvar_num := !tyvar_num + 1; (TyVar ("t" ^ string_of_int !tyvar_num)))
 
 let rec gen_equations : TEnv.t -> exp -> typ -> typ_eqn 
-=fun tenv e ty -> [] (* TODO *)
+=fun tenv e ty -> match e with
+| CONST n -> [(ty, TyInt)]
+| VAR x -> [(ty, tenv x)]
+| ADD (e1, e2) -> [(ty, TyInt)] @ (gen_equations tenv e1 TyInt) @ (gen_equations tenv e2 TyInt)
+| SUB (e1, e2) -> [(ty, TyInt)] @ (gen_equations tenv e1 TyInt) @ (gen_equations tenv e2 TyInt)
+| MUL (e1, e2) -> [(ty, TyInt)] @ (gen_equations tenv e1 TyInt) @ (gen_equations tenv e2 TyInt)
+| DIV (e1, e2) -> [(ty, TyInt)] @ (gen_equations tenv e1 TyInt) @ (gen_equations tenv e2 TyInt)
+| _ -> raise TypeError
 
 let solve : typ_eqn -> Subst.t
 =fun eqns -> Subst.empty (* TODO *)
