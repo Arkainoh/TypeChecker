@@ -21,6 +21,10 @@ type typ = TyInt | TyBool | TyFun of typ * typ | TyVar of tyvar
 and tyvar = string
 type typ_eqn = (typ * typ) list
 
+(* type equation 확장 *)
+let extend_typ_eqn : (typ * typ) -> (typ * typ) list -> (typ * typ) list
+= fun (a, b) l -> (a, b) :: l;;
+
 let rec string_of_type ty = 
   match ty with
   | TyInt -> "int"
